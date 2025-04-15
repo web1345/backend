@@ -7,6 +7,7 @@ require('dotenv').config();
 const registerManager = async (req, res) => {
   const { email, password } = req.body;
   try {
+
     const hashedPassword = await bcrypt.hash(password, 10);
     await pool.query(
       'INSERT INTO users (email, password, role) VALUES ($1, $2, $3)',
@@ -18,7 +19,6 @@ const registerManager = async (req, res) => {
   }
 };
 
-// Login user (manager or babysitter)
 const login = async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -29,6 +29,17 @@ const login = async (req, res) => {
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Invalid password' });
+
+    let babysitterId = null;
+
+    // If the user is a babysitter, get their babysitter record using user_id
+    if (user.role === 'babysitter') {
+      const babysitterResult = await pool.query(
+        'SELECT id FROM babysitters WHERE user_id = $1',
+        [user.id]
+      );
+      babysitterId = babysitterResult.rows[0]?.id || null;
+    }
 
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
@@ -47,7 +58,8 @@ const login = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        role: user.role
+        role: user.role,
+        user_id: babysitterId // Added field for babysitters
       }
     });
   } catch (err) {
@@ -62,8 +74,19 @@ const logout = async (req, res) => {
   });
 };
 
+//getallusers
+const getAllUsers = async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM users');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   registerManager,
   login,
-  logout
+  logout,
+  getAllUsers,
 };

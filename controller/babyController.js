@@ -1,16 +1,33 @@
 const { pool } = require('../model/User');
+const { sendEmail } = require('../utils/mailer');
 
-// Create a new baby (already implemented)
+// Add baby with parent email and send welcome email
 exports.addBaby = async (req, res) => {
-  const { name, age, parent_name, parent_phone, special_needs, duration } = req.body;
+  const { name, age, parent_name, parent_phone, parent_email, special_needs, duration } = req.body;
+  
   try {
     await pool.query(
       `INSERT INTO babies
-       (name, age, parent_name, parent_phone, special_needs, duration)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [name, age, parent_name, parent_phone, special_needs, duration]
+       (name, age, parent_name, parent_phone, parent_email, special_needs, duration)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [name, age, parent_name, parent_phone, parent_email, special_needs, duration]
     );
-    res.status(201).json({ message: 'Child added' });
+
+    // Use the sendEmail helper function
+    await sendEmail({
+      to: parent_email,
+      subject: 'Your child has been registered',
+      text: `Hello ${parent_name},
+
+Your child, ${name}, has been successfully registered into our babysitting system.
+
+If you have any questions or updates, feel free to contact us!
+
+Best regards,
+Babysitting Service Team`
+    });
+
+    res.status(201).json({ message: 'Child added and email sent to parent' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -24,6 +41,7 @@ exports.getAllBabies = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+
 };
 
 // Get a single baby by ID

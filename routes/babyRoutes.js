@@ -5,6 +5,7 @@ const babyController = require('../controller/babyController');
 // Route for adding a new baby (Create)
 router.post('/addbaby', babyController.addBaby);
 
+
 // Route for getting all babies (Read)
 router.get('/babies', babyController.getAllBabies);
 
